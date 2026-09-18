@@ -25,10 +25,31 @@ services:
       CORS_ORIGINS: '["http://localhost:3000"]'
     ports:
       - "8000:8000"
+    volumes:
+      - upload_data:/app/data/uploads
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [internal, edge]
+
+  worker:
+    build:
+      context: ./apps/api
+      args:
+        INSTALL_MODELS: "true"
+    command: ["python", "-m", "flowraga.workers.ingestion"]
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://flowraga:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/flowraga
+      STORAGE_ROOT: /app/data/uploads
+      FASTEMBED_CACHE_PATH: /app/model-cache
+    volumes:
+      - upload_data:/app/data/uploads
+      - model_cache:/app/model-cache
     depends_on:
       postgres:
         condition: service_healthy
-    networks: [internal, edge]
+    networks: [internal]
 
   web:
     build:
@@ -52,4 +73,5 @@ networks:
 
 volumes:
   postgres_data:
-
+  upload_data:
+  model_cache:

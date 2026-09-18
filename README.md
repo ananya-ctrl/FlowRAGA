@@ -18,7 +18,7 @@ This repository is an original implementation created independently by Ananya. I
 2. Run `docker compose up --build`.
 3. Open `http://localhost:3000` for the web app and `http://localhost:8000/docs` for API documentation.
 
-The initial foundation deliberately contains no paid-model dependency and no API keys.
+The worker downloads the open-weight `BAAI/bge-small-en-v1.5` model on first use and caches it in a Docker volume. No paid-model dependency or API key is required.
 
 ## Repository layout
 
@@ -30,7 +30,7 @@ docs         Architecture and engineering decisions
 
 ## Status
 
-The foundation now includes secure browser authentication and owner-isolated projects. Document ingestion, RAG execution, evaluation, and visual pipeline capabilities will be added in reviewed phases.
+The application now includes secure browser authentication, owner-isolated projects, protected document ingestion, asynchronous chunking, local open-source embeddings, and pgvector indexing. Retrieval, answer generation, evaluation, and the visual pipeline builder will be added in reviewed phases.
 
 ## License
 

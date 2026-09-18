@@ -82,6 +82,8 @@ article p { color: var(--muted); line-height: 1.6; }
 .document-list { display: grid; gap: 12px; margin-top: 28px; }
 .document-list article { min-height: auto; padding: 20px; display: flex; align-items: center; justify-content: space-between; }
 .document-list span { display: block; margin-top: 7px; color: var(--muted); }
+.document-list progress { width: min(360px, 70vw); margin-top: 10px; accent-color: var(--accent); }
+.document-actions { display: flex; gap: 8px; }
 .empty-state { min-height: 220px; display: grid; place-content: center; gap: 8px; text-align: center; color: var(--muted); border: 1px dashed var(--line); }
 .empty-state strong { color: var(--text); font-size: 1.2rem; }
 @media (max-width: 760px) {

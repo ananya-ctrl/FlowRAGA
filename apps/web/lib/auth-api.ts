@@ -93,7 +93,7 @@ export async function listProjects(accessToken: string): Promise<
 }
 
 export interface Project { id: string; name: string; description: string | null; updated_at: string; }
-export interface UploadedDocument { id: string; project_id: string; original_filename: string; media_type: string; size_bytes: number; sha256: string; status: string; error_message: string | null; created_at: string; }
+export interface UploadedDocument { id: string; project_id: string; original_filename: string; media_type: string; size_bytes: number; sha256: string; status: string; indexing_progress: number; chunk_count: number; error_message: string | null; created_at: string; }
 export function createProject(accessToken: string, input: {name: string; description?: string}) { return request<Project>("/api/v1/projects", {method: "POST", headers: {Authorization: `Bearer ${accessToken}`}, body: JSON.stringify(input)}); }
 export function getProject(accessToken: string, id: string) { return request<Project>(`/api/v1/projects/${id}`, {headers: {Authorization: `Bearer ${accessToken}`}}); }
 export function updateProject(accessToken: string, id: string, input: {name: string; description?: string}) { return request<Project>(`/api/v1/projects/${id}`, {method: "PUT", headers: {Authorization: `Bearer ${accessToken}`}, body: JSON.stringify(input)}); }
@@ -101,3 +101,4 @@ export function deleteProject(accessToken: string, id: string) { return request<
 export function listDocuments(accessToken: string, projectId: string) { return request<UploadedDocument[]>(`/api/v1/projects/${projectId}/documents`, {headers: {Authorization: `Bearer ${accessToken}`}}); }
 export function uploadDocument(accessToken: string, projectId: string, file: File) { const body = new FormData(); body.append("file", file); return request<UploadedDocument>(`/api/v1/projects/${projectId}/documents`, {method: "POST", headers: {Authorization: `Bearer ${accessToken}`}, body}); }
 export function deleteDocument(accessToken: string, projectId: string, documentId: string) { return request<void>(`/api/v1/projects/${projectId}/documents/${documentId}`, {method: "DELETE", headers: {Authorization: `Bearer ${accessToken}`}}); }
+export function retryDocument(accessToken: string, projectId: string, documentId: string) { return request(`/api/v1/projects/${projectId}/documents/${documentId}/retry`, {method: "POST", headers: {Authorization: `Bearer ${accessToken}`}}); }

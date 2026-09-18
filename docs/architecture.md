@@ -42,6 +42,25 @@ flowchart TD
 - File size, PDF page count, and archive expansion limits are configurable.
 - Local storage is the initial adapter; object storage and asynchronous extraction can replace it without changing the API contract.
 
+## Asynchronous indexing
+
+```mermaid
+flowchart TD
+    Upload[Validated document] --> Queue[(Ingestion job)]
+    Queue --> Worker[Independent worker]
+    Worker --> Chunks[Deterministic overlapping chunks]
+    Chunks --> Model[Local BGE embedding model]
+    Model --> Vectors[(PostgreSQL pgvector)]
+    Worker --> Status[Progress and retry state]
+```
+
+- API workers validate and extract uploads, then enqueue indexing without loading an ML model.
+- The worker claims jobs with row locking, embeds in bounded batches, and records progress.
+- Failed jobs use bounded exponential retries and can be retried manually after exhaustion.
+- A project-level SHA-256 uniqueness constraint prevents duplicate source indexing.
+- Production vectors use `vector(384)` with an HNSW cosine index. Tests use a JSON-compatible variant.
+- `BAAI/bge-small-en-v1.5` runs locally through FastEmbed; no paid model API is required.
+
 ## Planned model defaults
 
 - Embeddings: `BAAI/bge-small-en-v1.5`

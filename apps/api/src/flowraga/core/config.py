@@ -33,6 +33,19 @@ class Settings(BaseSettings):
     max_upload_bytes: int = Field(default=25 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
     max_archive_uncompressed_bytes: int = Field(default=100 * 1024 * 1024, ge=1024)
     max_archive_entries: int = Field(default=2000, ge=1, le=10000)
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_dimensions: Literal[384] = 384
+    chunk_size_words: int = Field(default=350, ge=50, le=2000)
+    chunk_overlap_words: int = Field(default=50, ge=0, le=500)
+    embedding_batch_size: int = Field(default=32, ge=1, le=256)
+    ingestion_max_attempts: int = Field(default=3, ge=1, le=10)
+    worker_poll_seconds: float = Field(default=2.0, ge=0.1, le=60)
+
+    @model_validator(mode="after")
+    def validate_chunking(self) -> "Settings":
+        if self.chunk_overlap_words >= self.chunk_size_words:
+            raise ValueError("Chunk overlap must be smaller than chunk size")
+        return self
 
     @field_validator("cors_origins")
     @classmethod

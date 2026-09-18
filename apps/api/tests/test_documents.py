@@ -28,9 +28,21 @@ def test_text_document_lifecycle_and_owner_isolation(client: TestClient) -> None
     )
     assert uploaded.status_code == 201, uploaded.text
     body = uploaded.json()
-    assert body["status"] == "ready"
+    assert body["status"] == "queued"
+    assert body["indexing_progress"] == 0
     assert body["original_filename"] == "notes.md"
     assert len(body["sha256"]) == 64
+
+    duplicate = client.post(
+        f"/api/v1/projects/{project_id}/documents",
+        headers=headers,
+        files={"file": ("copy.md", b"# Safe knowledge\nUseful facts", "text/markdown")},
+    )
+    assert duplicate.status_code == 409
+
+    jobs = client.get(f"/api/v1/projects/{project_id}/documents/jobs", headers=headers)
+    assert jobs.status_code == 200
+    assert jobs.json()[0]["status"] == "queued"
 
     listed = client.get(f"/api/v1/projects/{project_id}/documents", headers=headers)
     assert [item["id"] for item in listed.json()] == [body["id"]]

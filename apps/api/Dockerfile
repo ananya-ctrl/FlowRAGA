@@ -6,13 +6,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+ARG INSTALL_MODELS=false
+
 RUN addgroup --system flowraga && adduser --system --ingroup flowraga flowraga
+RUN mkdir -p /app/data/uploads /app/model-cache && chown -R flowraga:flowraga /app/data /app/model-cache
 
 COPY pyproject.toml ./
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY src ./src
-RUN pip install --no-cache-dir .
+RUN if [ "$INSTALL_MODELS" = "true" ]; then pip install --no-cache-dir '.[models]'; else pip install --no-cache-dir .; fi
 
 USER flowraga
 EXPOSE 8000

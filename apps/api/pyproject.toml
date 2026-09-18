@@ -19,12 +19,14 @@ dependencies = [
   "pwdlib[argon2]>=0.2,<1",
   "pyjwt[crypto]>=2.10,<3",
   "pydantic-settings>=2.7,<3",
+  "pgvector>=0.3,<1",
   "sqlalchemy[asyncio]>=2.0,<3",
   "structlog>=25.1,<26",
   "uvicorn[standard]>=0.34,<1",
 ]
 
 [project.optional-dependencies]
+models = ["fastembed>=0.7,<1"]
 dev = [
   "aiosqlite>=0.21,<1",
   "httpx>=0.28,<1",
