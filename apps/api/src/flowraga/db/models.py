@@ -89,6 +89,27 @@ class Project(Base):
     evaluation_datasets: Mapped[list["EvaluationDataset"]] = relationship(
         cascade="all, delete-orphan"
     )
+    pipelines: Mapped[list["Pipeline"]] = relationship(cascade="all, delete-orphan")
+
+
+class Pipeline(Base):
+    __tablename__ = "pipelines"
+    __table_args__ = (
+        Index("ix_pipelines_project_updated", "project_id", "updated_at"),
+        UniqueConstraint("project_id", "name", name="uq_pipelines_project_name"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(120))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    configuration: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class Document(Base):

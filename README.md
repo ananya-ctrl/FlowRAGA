@@ -30,7 +30,9 @@ docs         Architecture and engineering decisions
 
 ## Status
 
-The application now includes secure authentication, protected ingestion, asynchronous indexing, hybrid retrieval, local reranking, grounded answers, persistent conversations, evaluation experiments, downloadable reports, structured logs, and metrics. The visual pipeline builder will be added in a reviewed phase.
+The application now includes secure authentication, protected ingestion, asynchronous indexing, hybrid retrieval, local reranking, grounded answers, persistent conversations, evaluation experiments, saved and active RAG pipelines, portable pipeline JSON, downloadable reports, structured logs, and metrics.
+
+Pipeline design intentionally uses a lightweight validated sequence—documents → retrieval → reranking → generation → evaluation—rather than a resource-heavy graph runtime. See [release readiness](docs/release-readiness.md) before a public deployment.
 
 ## License
 

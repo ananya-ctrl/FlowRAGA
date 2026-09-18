@@ -12,6 +12,7 @@ from flowraga.api.routes.conversations import router as conversations_router
 from flowraga.api.routes.documents import router as documents_router
 from flowraga.api.routes.evaluations import router as evaluations_router
 from flowraga.api.routes.health import router as health_router
+from flowraga.api.routes.pipelines import router as pipelines_router
 from flowraga.api.routes.projects import router as projects_router
 from flowraga.api.routes.qa import router as qa_router
 from flowraga.core.config import get_settings
@@ -84,6 +85,7 @@ app.include_router(documents_router, prefix="/api/v1")
 app.include_router(qa_router, prefix="/api/v1")
 app.include_router(conversations_router, prefix="/api/v1")
 app.include_router(evaluations_router, prefix="/api/v1")
+app.include_router(pipelines_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)

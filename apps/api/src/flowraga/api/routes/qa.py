@@ -9,7 +9,7 @@ from flowraga.auth.dependencies import CurrentUser
 from flowraga.core.config import get_settings
 from flowraga.core.observability import observe_ai_operation
 from flowraga.db.dependencies import DbSession
-from flowraga.db.models import ChatConversation, ChatMessage, Project
+from flowraga.db.models import ChatConversation, ChatMessage, Pipeline, Project
 from flowraga.models.dependencies import (
     EmbeddingDependency,
     GenerationDependency,
@@ -79,20 +79,32 @@ async def ask_project(
     )
     db.add(user_message)
     settings = get_settings()
-    top_k = payload.top_k or settings.retrieval_default_top_k
+    active_pipeline = await db.scalar(
+        select(Pipeline).where(
+            Pipeline.project_id == project_id,
+            Pipeline.owner_id == user.id,
+            Pipeline.is_active.is_(True),
+        )
+    )
+    pipeline = active_pipeline.configuration if active_pipeline else {}
+    top_k = pipeline.get("top_k") or payload.top_k or settings.retrieval_default_top_k
     threshold = (
-        payload.similarity_threshold
+        pipeline.get("similarity_threshold")
+        if active_pipeline
+        else payload.similarity_threshold
         if payload.similarity_threshold is not None
         else settings.retrieval_default_threshold
     )
+    retrieval_mode = pipeline.get("retrieval_mode", payload.retrieval_mode)
+    rerank_enabled = pipeline.get("rerank", payload.rerank)
     started = time.perf_counter()
     candidate_limit = top_k * settings.hybrid_candidate_multiplier
-    if payload.retrieval_mode == "vector":
+    if retrieval_mode == "vector":
         query_vector = await embeddings.embed_query(question)
         sources = await retrieve_sources(
             db, project_id, user.id, query_vector, candidate_limit, threshold
         )
-    elif payload.retrieval_mode == "keyword":
+    elif retrieval_mode == "keyword":
         sources = await keyword_sources(db, project_id, user.id, question, candidate_limit)
     else:
         query_vector = await embeddings.embed_query(question)
@@ -108,7 +120,7 @@ async def ask_project(
             settings.rrf_constant,
         )
     reranker_status = "disabled"
-    if payload.rerank and sources and reranker is not None:
+    if rerank_enabled and sources and reranker is not None:
         try:
             ranked = await reranker.rerank(question, [source.content for source in sources])
             sources = [
@@ -158,7 +170,8 @@ async def ask_project(
             "generation", generation_status, time.perf_counter() - generation_started
         )
     trace = {
-        "retrieval_mode": payload.retrieval_mode,
+        "retrieval_mode": retrieval_mode,
+        "pipeline_id": str(active_pipeline.id) if active_pipeline else None,
         "top_k": top_k,
         "similarity_threshold": threshold,
         "candidate_limit": candidate_limit,

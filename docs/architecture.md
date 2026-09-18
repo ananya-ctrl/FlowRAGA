@@ -100,6 +100,14 @@ flowchart TD
 - Prometheus counters and latency histograms use bounded route-template labels to avoid high-cardinality IDs.
 - Project evaluation APIs and reports are owner-scoped; metrics expose aggregate infrastructure data only.
 
+## Pipelines and release portability
+
+- Projects can save bounded retrieval configurations, activate one preset, and version changes.
+- The active pipeline supplies the authoritative bounded retrieval settings to question answering.
+- Balanced, fast, and high-recall templates cover common use without introducing a graph execution dependency.
+- Pipeline JSON export/import uses a versioned portable format and validates every imported setting.
+- Production configuration rejects weak JWT secrets, insecure cookies, and wildcard CORS origins.
+
 ## Planned model defaults
 
 - Embeddings: `BAAI/bge-small-en-v1.5`
