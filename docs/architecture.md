@@ -21,6 +21,14 @@ flowchart TD
 6. Long-running ingestion and evaluation will execute outside API request workers.
 7. Open-weight local models are the default; hosted providers are optional adapters.
 
+## Identity and session security
+
+- Passwords are hashed with Argon2.
+- Access tokens are short-lived JWTs with issuer, audience, type, expiry, and unique ID claims.
+- Refresh tokens are opaque random values; only SHA-256 digests are stored.
+- Refresh tokens rotate on every use and can be revoked independently.
+- Projects include a non-null owner identifier and queries must filter by that owner.
+
 ## Planned model defaults
 
 - Embeddings: `BAAI/bge-small-en-v1.5`
@@ -29,4 +37,3 @@ flowchart TD
 - Generation: provider adapter supporting local Ollama-compatible open-weight models
 
 Model packages are intentionally not installed in the foundation image. They will be introduced with resource limits, caching, health checks, and benchmarks during the RAG core phase.
-

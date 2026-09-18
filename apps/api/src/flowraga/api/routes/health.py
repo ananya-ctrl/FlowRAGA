@@ -31,4 +31,3 @@ async def ready(
             content={"status": "unavailable", "version": settings.app_version},
         )
     return HealthResponse(status="ready", version=settings.app_version)
-

@@ -5,7 +5,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from flowraga.api.routes.auth import router as auth_router
 from flowraga.api.routes.health import router as health_router
+from flowraga.api.routes.projects import router as projects_router
 from flowraga.core.config import get_settings
 from flowraga.core.database import Database
 
@@ -54,10 +56,12 @@ async def unexpected_error(_: Request, __: Exception) -> JSONResponse:
         content={"code": "internal_error", "message": "An unexpected error occurred"},
     )
 
+
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(projects_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)
 async def root() -> dict[str, str]:
     return {"name": settings.app_name, "version": settings.app_version}
-

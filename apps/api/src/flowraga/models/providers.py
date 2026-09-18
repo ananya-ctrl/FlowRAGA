@@ -27,4 +27,3 @@ class GenerationProvider(ABC):
 
     @abstractmethod
     def stream(self, messages: Sequence[dict[str, str]]) -> AsyncIterator[str]: ...
-

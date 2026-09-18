@@ -11,4 +11,3 @@ def test_liveness() -> None:
     assert response.json() == {"status": "ok", "version": "0.1.0"}
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
-

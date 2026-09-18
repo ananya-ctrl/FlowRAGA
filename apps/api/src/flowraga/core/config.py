@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,8 +17,16 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     log_level: str = "INFO"
-    database_url: str = "postgresql+asyncpg://flowraga:local-development-only@localhost:5432/flowraga"
+    database_url: str = (
+        "postgresql+asyncpg://flowraga:local-development-only@localhost:5432/flowraga"
+    )
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    jwt_secret: str = "local-development-secret-change-before-deployment"
+    jwt_algorithm: Literal["HS256"] = "HS256"
+    jwt_issuer: str = "flowraga-api"
+    jwt_audience: str = "flowraga-web"
+    access_token_minutes: int = Field(default=15, ge=5, le=60)
+    refresh_token_days: int = Field(default=30, ge=1, le=90)
 
     @field_validator("cors_origins")
     @classmethod
@@ -26,6 +34,16 @@ class Settings(BaseSettings):
         if "*" in origins:
             raise ValueError("Wildcard CORS origins are not permitted")
         return origins
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self) -> "Settings":
+        if self.is_production and (
+            len(self.jwt_secret) < 32 or self.jwt_secret.startswith("local-development")
+        ):
+            raise ValueError(
+                "Production JWT_SECRET must be a unique value of at least 32 characters"
+            )
+        return self
 
     @property
     def is_production(self) -> bool:
@@ -35,4 +53,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
