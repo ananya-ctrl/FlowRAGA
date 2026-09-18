@@ -7,6 +7,7 @@ from sqlalchemy import select
 
 from flowraga.auth.dependencies import CurrentUser
 from flowraga.core.config import get_settings
+from flowraga.core.observability import observe_ai_operation
 from flowraga.db.dependencies import DbSession
 from flowraga.db.models import ChatConversation, ChatMessage, Project
 from flowraga.models.dependencies import (
@@ -121,6 +122,7 @@ async def ask_project(
     candidate_count = len(sources)
     sources = sources[:top_k]
     retrieval_ms = round((time.perf_counter() - started) * 1000)
+    observe_ai_operation("retrieval", "completed", time.perf_counter() - started)
     source_models = [
         SourceResponse(
             label=f"S{number}",
@@ -152,6 +154,9 @@ async def ask_project(
             answer = "Relevant evidence was retrieved, but the local answer model is unavailable."
             generation_status = "unavailable"
         generation_ms = round((time.perf_counter() - generation_started) * 1000)
+        observe_ai_operation(
+            "generation", generation_status, time.perf_counter() - generation_started
+        )
     trace = {
         "retrieval_mode": payload.retrieval_mode,
         "top_k": top_k,

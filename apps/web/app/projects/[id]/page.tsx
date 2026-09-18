@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ProjectChat } from "@/components/project-chat";
+import { EvaluationPanel } from "@/components/evaluation-panel";
 import { deleteDocument, getProject, listDocuments, Project, retryDocument, UploadedDocument, uploadDocument } from "@/lib/auth-api";
 
 export default function ProjectPage() {
@@ -20,6 +21,7 @@ export default function ProjectPage() {
     <header className="dashboard-nav"><Link className="brand" href="/dashboard">← FlowRAGA</Link><span>{user.display_name}</span></header>
     <section className="dashboard-heading"><p className="eyebrow">Project workspace</p><h1>{project.name}</h1><p>{project.description}</p></section>
     <ProjectChat projectId={id} accessToken={accessToken} />
+    <EvaluationPanel projectId={id} accessToken={accessToken} />
     <section className="document-panel"><h2>Knowledge sources</h2><p>Upload PDF, TXT, Markdown, or DOCX. Maximum 25 MB.</p><form onSubmit={submitUpload}><input name="document" type="file" required accept=".pdf,.txt,.md,.docx" /><button className="primary" disabled={uploading}>{uploading ? "Validating…" : "Upload document"}</button></form>{error && <p className="form-error">{error}</p>}<div className="document-list">{documents.length === 0 ? <p className="empty-state">No documents yet.</p> : documents.map((document) => <article key={document.id}><div><strong>{document.original_filename}</strong><span>{(document.size_bytes / 1024).toFixed(1)} KB · {document.status}{document.status === "ready" ? ` · ${document.chunk_count} chunks` : ` · ${document.indexing_progress}%`}</span>{["queued", "indexing"].includes(document.status) && <progress max="100" value={document.indexing_progress} aria-label={`Indexing ${document.original_filename}`} />}{document.error_message && <small className="form-error">{document.error_message}</small>}</div><div className="document-actions">{document.status === "failed" && <button className="quiet-button" onClick={() => { void retryDocument(accessToken, id, document.id).then(() => setDocuments((items) => items.map((item) => item.id === document.id ? {...item, status: "queued", indexing_progress: 0, error_message: null} : item))); }}>Retry</button>}<button className="quiet-button" onClick={() => { void deleteDocument(accessToken, id, document.id).then(() => setDocuments((items) => items.filter((item) => item.id !== document.id))); }}>Remove</button></div></article>)}</div></section>
   </main>;
 }

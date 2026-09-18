@@ -1,6 +1,8 @@
+import time
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -8,13 +10,17 @@ from fastapi.responses import JSONResponse
 from flowraga.api.routes.auth import router as auth_router
 from flowraga.api.routes.conversations import router as conversations_router
 from flowraga.api.routes.documents import router as documents_router
+from flowraga.api.routes.evaluations import router as evaluations_router
 from flowraga.api.routes.health import router as health_router
 from flowraga.api.routes.projects import router as projects_router
 from flowraga.api.routes.qa import router as qa_router
 from flowraga.core.config import get_settings
 from flowraga.core.database import Database
+from flowraga.core.observability import configure_logging, observe_request
 
 settings = get_settings()
+configure_logging(settings.log_level)
+logger = structlog.get_logger("flowraga.api")
 
 
 @asynccontextmanager
@@ -44,7 +50,18 @@ app.add_middleware(
 @app.middleware("http")
 async def request_context(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or str(uuid4())
+    started = time.perf_counter()
     response = await call_next(request)
+    route = getattr(request.scope.get("route"), "path", "unmatched")
+    observe_request(request.method, route, response.status_code, started)
+    logger.info(
+        "request_complete",
+        request_id=request_id,
+        method=request.method,
+        route=route,
+        status=response.status_code,
+        duration_ms=round((time.perf_counter() - started) * 1000, 2),
+    )
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -66,6 +83,7 @@ app.include_router(projects_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(qa_router, prefix="/api/v1")
 app.include_router(conversations_router, prefix="/api/v1")
+app.include_router(evaluations_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)

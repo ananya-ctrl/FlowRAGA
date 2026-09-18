@@ -86,6 +86,9 @@ class Project(Base):
         back_populates="project", cascade="all, delete-orphan"
     )
     conversations: Mapped[list["ChatConversation"]] = relationship(cascade="all, delete-orphan")
+    evaluation_datasets: Mapped[list["EvaluationDataset"]] = relationship(
+        cascade="all, delete-orphan"
+    )
 
 
 class Document(Base):
@@ -207,4 +210,65 @@ class AnswerFeedback(Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     rating: Mapped[int] = mapped_column(Integer)
     comment: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EvaluationDataset(Base):
+    __tablename__ = "evaluation_datasets"
+    __table_args__ = (Index("ix_eval_datasets_project_created", "project_id", "created_at"),)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(160))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    cases: Mapped[list["EvaluationCase"]] = relationship(cascade="all, delete-orphan")
+    runs: Mapped[list["EvaluationRun"]] = relationship(cascade="all, delete-orphan")
+
+
+class EvaluationCase(Base):
+    __tablename__ = "evaluation_cases"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    dataset_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("evaluation_datasets.id", ondelete="CASCADE"), index=True
+    )
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    question: Mapped[str] = mapped_column(Text)
+    expected_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expected_document_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EvaluationRun(Base):
+    __tablename__ = "evaluation_runs"
+    __table_args__ = (Index("ix_eval_runs_dataset_created", "dataset_id", "created_at"),)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    dataset_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("evaluation_datasets.id", ondelete="CASCADE")
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    status: Mapped[str] = mapped_column(String(20), default="queued")
+    configuration: Mapped[dict] = mapped_column(JSON)
+    summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    results: Mapped[list["EvaluationResult"]] = relationship(cascade="all, delete-orphan")
+
+
+class EvaluationResult(Base):
+    __tablename__ = "evaluation_results"
+    __table_args__ = (UniqueConstraint("run_id", "case_id", name="uq_eval_result_run_case"),)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("evaluation_runs.id", ondelete="CASCADE"))
+    case_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("evaluation_cases.id", ondelete="CASCADE")
+    )
+    answer: Mapped[str] = mapped_column(Text)
+    sources: Mapped[list[dict]] = mapped_column(JSON)
+    metrics: Mapped[dict] = mapped_column(JSON)
+    trace: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

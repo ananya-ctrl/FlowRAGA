@@ -30,7 +30,7 @@ docs         Architecture and engineering decisions
 
 ## Status
 
-The application now includes secure browser authentication, protected ingestion, asynchronous indexing, hybrid retrieval, local reranking, grounded answers, persistent conversations, feedback, diagnostics, and exports. Evaluation and the visual pipeline builder will be added in reviewed phases.
+The application now includes secure authentication, protected ingestion, asynchronous indexing, hybrid retrieval, local reranking, grounded answers, persistent conversations, evaluation experiments, downloadable reports, structured logs, and metrics. The visual pipeline builder will be added in a reviewed phase.
 
 ## License
 

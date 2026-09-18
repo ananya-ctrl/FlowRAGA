@@ -90,6 +90,16 @@ flowchart TD
 - Answer feedback is unique per message and can be updated without duplicating records.
 - Conversation export produces Markdown containing the dialogue and cited source summary.
 
+## Evaluation and observability
+
+- Evaluation datasets contain labeled questions, optional reference answers, and relevant document IDs.
+- Dedicated workers execute queued runs without tying up API request workers.
+- Retrieval recall/precision, token F1, citation validity, and citation coverage are deterministic and reproducible.
+- Every result stores its answer, evidence snapshot, stage latency, and configuration for comparison.
+- JSON structured logs include request IDs, route templates, status, and duration without logging credentials or document content.
+- Prometheus counters and latency histograms use bounded route-template labels to avoid high-cardinality IDs.
+- Project evaluation APIs and reports are owner-scoped; metrics expose aggregate infrastructure data only.
+
 ## Planned model defaults
 
 - Embeddings: `BAAI/bge-small-en-v1.5`

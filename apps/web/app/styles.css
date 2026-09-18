@@ -110,6 +110,18 @@ article p { color: var(--muted); line-height: 1.6; }
 .feedback-actions, .chat-tools { display: flex; gap: 8px; margin-top: 12px; }
 .feedback-actions button { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 6px 9px; cursor: pointer; }
 @media (max-width: 760px) { .chat-layout { grid-template-columns: 1fr; } .conversation-sidebar { border-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 12px; } }
+.evaluation-panel { margin-bottom: 32px; padding: 32px; border: 1px solid var(--line); background: rgba(13, 27, 24, 0.72); }
+.evaluation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.evaluation-grid form { display: grid; gap: 10px; align-content: start; }
+.evaluation-grid input, .evaluation-grid textarea, .evaluation-grid select { padding: 11px; border: 1px solid var(--line); background: #081411; color: var(--text); }
+.evaluation-grid button, .run-evaluation { border: 0; padding: 10px 14px; font-weight: 700; }
+.run-evaluation { margin-top: 20px; }
+.evaluation-runs { display: grid; gap: 12px; margin-top: 20px; }
+.evaluation-runs article { min-height: auto; padding: 20px; }
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 14px 0; }
+.metric-grid span { display: grid; gap: 4px; padding: 10px; border: 1px solid var(--line); color: var(--text); }
+.metric-grid small { color: var(--muted); }
+@media (max-width: 760px) { .evaluation-grid { grid-template-columns: 1fr; } }
 .empty-state { min-height: 220px; display: grid; place-content: center; gap: 8px; text-align: center; color: var(--muted); border: 1px dashed var(--line); }
 .empty-state strong { color: var(--text); font-size: 1.2rem; }
 @media (max-width: 760px) {
