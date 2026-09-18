@@ -28,6 +28,10 @@ flowchart TD
 - Refresh tokens are opaque random values; only SHA-256 digests are stored.
 - Refresh tokens rotate on every use and can be revoked independently.
 - Projects include a non-null owner identifier and queries must filter by that owner.
+- Browser refresh tokens are transmitted only through HttpOnly cookies.
+- Access tokens and CSRF tokens are held in application memory, not local storage.
+- Cookie-backed refresh and logout operations require a matching CSRF cookie and header.
+- The browser obtains a short-lived CSRF token before attempting session restoration.
 
 ## Planned model defaults
 

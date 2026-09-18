@@ -9,10 +9,6 @@ describe("home page", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Build retrieval systems you can actually understand.",
     );
-    expect(screen.getByRole("link", { name: "View repository" })).toHaveAttribute(
-      "href",
-      "https://github.com/ananya-ctrl/FlowRAGA",
-    );
+    expect(screen.getByRole("link", { name: "Start building" })).toHaveAttribute("href", "/signup");
   });
 });
-

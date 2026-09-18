@@ -38,3 +38,15 @@ def test_refresh_token_stores_only_digest() -> None:
     assert len(refresh.raw) >= 64
     assert len(refresh.digest) == 64
     assert refresh.raw != refresh.digest
+
+
+def test_production_rejects_insecure_authentication_configuration() -> None:
+    with pytest.raises(ValueError, match="JWT_SECRET"):
+        Settings(environment="production")
+
+    with pytest.raises(ValueError, match="cookies must be secure"):
+        Settings(
+            environment="production",
+            jwt_secret="a-unique-production-secret-with-32-characters",
+            auth_cookie_secure=False,
+        )

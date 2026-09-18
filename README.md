@@ -30,9 +30,8 @@ docs         Architecture and engineering decisions
 
 ## Status
 
-Phase 1 establishes the secure, tested foundation. Authentication, ingestion, RAG execution, evaluation, and visual pipeline capabilities will be added in reviewed phases.
+The foundation now includes secure browser authentication and owner-isolated projects. Document ingestion, RAG execution, evaluation, and visual pipeline capabilities will be added in reviewed phases.
 
 ## License
 
 MIT
-

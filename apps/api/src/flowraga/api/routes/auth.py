@@ -1,7 +1,9 @@
+import hmac
+import secrets
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
@@ -18,8 +20,6 @@ from flowraga.db.dependencies import DbSession
 from flowraga.db.models import RefreshSession, User
 from flowraga.schemas.auth import (
     LoginRequest,
-    LogoutRequest,
-    RefreshRequest,
     RegisterRequest,
     TokenResponse,
     UserResponse,
@@ -27,28 +27,79 @@ from flowraga.schemas.auth import (
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 DUMMY_PASSWORD_HASH = hash_password("not-a-real-user-password")
+REFRESH_COOKIE = "flowraga_refresh"
+CSRF_COOKIE = "flowraga_csrf"
 
 
 def normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
-async def issue_tokens(user: User, db: DbSession, settings: Settings) -> TokenResponse:
+def set_session_cookies(
+    response: Response,
+    refresh_token: str,
+    csrf_token: str,
+    settings: Settings,
+) -> None:
+    max_age = settings.refresh_token_days * 24 * 60 * 60
+    common = {
+        "secure": settings.auth_cookie_secure,
+        "samesite": "lax",
+        "domain": settings.auth_cookie_domain,
+        "path": "/",
+        "max_age": max_age,
+    }
+    response.set_cookie(REFRESH_COOKIE, refresh_token, httponly=True, **common)
+    response.set_cookie(CSRF_COOKIE, csrf_token, httponly=False, **common)
+
+
+def clear_session_cookies(response: Response, settings: Settings) -> None:
+    for name in (REFRESH_COOKIE, CSRF_COOKIE):
+        response.delete_cookie(
+            name,
+            domain=settings.auth_cookie_domain,
+            path="/",
+            secure=settings.auth_cookie_secure,
+            samesite="lax",
+        )
+
+
+def require_csrf(request: Request, header_token: str | None) -> str:
+    cookie_token = request.cookies.get(CSRF_COOKIE)
+    if (
+        cookie_token is None
+        or header_token is None
+        or not hmac.compare_digest(cookie_token, header_token)
+    ):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF validation failed")
+    return cookie_token
+
+
+async def issue_tokens(
+    user: User,
+    db: DbSession,
+    settings: Settings,
+    response: Response,
+) -> tuple[TokenResponse, RefreshSession]:
     access_token, expires_in = create_access_token(user.id, settings)
     refresh = create_refresh_token(settings)
-    db.add(
-        RefreshSession(
-            user_id=user.id,
-            token_hash=refresh.digest,
-            expires_at=refresh.expires_at,
-        )
+    refresh_session = RefreshSession(
+        user_id=user.id,
+        token_hash=refresh.digest,
+        expires_at=refresh.expires_at,
     )
+    db.add(refresh_session)
     await db.flush()
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh.raw,
-        expires_in=expires_in,
-        user=UserResponse.model_validate(user),
+    csrf_token = secrets.token_urlsafe(32)
+    set_session_cookies(response, refresh.raw, csrf_token, settings)
+    return (
+        TokenResponse(
+            access_token=access_token,
+            expires_in=expires_in,
+            csrf_token=csrf_token,
+            user=UserResponse.model_validate(user),
+        ),
+        refresh_session,
     )
 
 
@@ -56,6 +107,7 @@ async def issue_tokens(user: User, db: DbSession, settings: Settings) -> TokenRe
 async def register(
     payload: RegisterRequest,
     db: DbSession,
+    response: Response,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> TokenResponse:
     email = normalize_email(str(payload.email))
@@ -76,13 +128,15 @@ async def register(
             status_code=status.HTTP_409_CONFLICT, detail="Account already exists"
         ) from None
     await db.refresh(user)
-    return await issue_tokens(user, db, settings)
+    token_response, _ = await issue_tokens(user, db, settings, response)
+    return token_response
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
     payload: LoginRequest,
     db: DbSession,
+    response: Response,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> TokenResponse:
     user = await db.scalar(select(User).where(User.email == normalize_email(str(payload.email))))
@@ -95,16 +149,42 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
-    return await issue_tokens(user, db, settings)
+    token_response, _ = await issue_tokens(user, db, settings, response)
+    return token_response
+
+
+@router.get("/csrf")
+async def csrf(response: Response, settings: Annotated[Settings, Depends(get_settings)]) -> dict:
+    token = secrets.token_urlsafe(32)
+    response.set_cookie(
+        CSRF_COOKIE,
+        token,
+        httponly=False,
+        secure=settings.auth_cookie_secure,
+        samesite="lax",
+        domain=settings.auth_cookie_domain,
+        path="/",
+        max_age=10 * 60,
+    )
+    return {"csrf_token": token}
 
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(
-    payload: RefreshRequest,
+    request: Request,
+    response: Response,
     db: DbSession,
     settings: Annotated[Settings, Depends(get_settings)],
+    x_csrf_token: Annotated[str | None, Header()] = None,
 ) -> TokenResponse:
-    token_hash = hash_refresh_token(payload.refresh_token)
+    require_csrf(request, x_csrf_token)
+    raw_refresh = request.cookies.get(REFRESH_COOKIE)
+    if raw_refresh is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+    token_hash = hash_refresh_token(raw_refresh)
     session = await db.scalar(
         select(RefreshSession).where(RefreshSession.token_hash == token_hash).with_for_update()
     )
@@ -126,25 +206,29 @@ async def refresh(
         )
 
     session.revoked_at = now
-    response = await issue_tokens(user, db, settings)
-    replacement = await db.scalar(
-        select(RefreshSession).where(
-            RefreshSession.token_hash == hash_refresh_token(response.refresh_token)
-        )
-    )
-    session.replaced_by_id = replacement.id if replacement else None
-    return response
+    token_response, replacement = await issue_tokens(user, db, settings, response)
+    session.replaced_by_id = replacement.id
+    return token_response
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(payload: LogoutRequest, db: DbSession) -> None:
+async def logout(
+    request: Request,
+    response: Response,
+    db: DbSession,
+    settings: Annotated[Settings, Depends(get_settings)],
+    x_csrf_token: Annotated[str | None, Header()] = None,
+) -> None:
+    require_csrf(request, x_csrf_token)
+    raw_refresh = request.cookies.get(REFRESH_COOKIE)
     session = await db.scalar(
         select(RefreshSession).where(
-            RefreshSession.token_hash == hash_refresh_token(payload.refresh_token)
+            RefreshSession.token_hash == hash_refresh_token(raw_refresh or "")
         )
     )
     if session is not None and session.revoked_at is None:
         session.revoked_at = datetime.now(UTC)
+    clear_session_cookies(response, settings)
 
 
 @router.get("/me", response_model=UserResponse)

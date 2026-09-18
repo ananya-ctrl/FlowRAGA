@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const principles = [
   ["Open by default", "Open-weight models and portable infrastructure without a paid-provider dependency."],
   ["Observable", "Every retrieval stage will expose evidence, latency, quality, and resource usage."],
@@ -9,7 +11,10 @@ export default function Home() {
     <main>
       <nav aria-label="Primary navigation">
         <a className="brand" href="#top" aria-label="FlowRAGA home">FlowRAGA</a>
-        <span className="phase">Foundation · v0.1</span>
+        <div className="nav-actions">
+          <Link href="/login">Sign in</Link>
+          <Link className="nav-cta" href="/signup">Create account</Link>
+        </div>
       </nav>
 
       <section id="top" className="hero">
@@ -19,7 +24,7 @@ export default function Home() {
           Design, test, compare, and export reliable RAG pipelines using open-source models and transparent evaluation.
         </p>
         <div className="actions">
-          <a className="primary" href="https://github.com/ananya-ctrl/FlowRAGA">View repository</a>
+          <Link className="primary" href="/signup">Start building</Link>
           <a className="secondary" href="#principles">Engineering principles</a>
         </div>
       </section>
@@ -36,4 +41,3 @@ export default function Home() {
     </main>
   );
 }
-

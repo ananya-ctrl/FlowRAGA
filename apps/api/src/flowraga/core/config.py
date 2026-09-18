@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     jwt_audience: str = "flowraga-web"
     access_token_minutes: int = Field(default=15, ge=5, le=60)
     refresh_token_days: int = Field(default=30, ge=1, le=90)
+    auth_cookie_secure: bool = False
+    auth_cookie_domain: str | None = None
 
     @field_validator("cors_origins")
     @classmethod
@@ -43,6 +45,8 @@ class Settings(BaseSettings):
             raise ValueError(
                 "Production JWT_SECRET must be a unique value of at least 32 characters"
             )
+        if self.is_production and not self.auth_cookie_secure:
+            raise ValueError("Production authentication cookies must be secure")
         return self
 
     @property
