@@ -84,6 +84,17 @@ article p { color: var(--muted); line-height: 1.6; }
 .document-list span { display: block; margin-top: 7px; color: var(--muted); }
 .document-list progress { width: min(360px, 70vw); margin-top: 10px; accent-color: var(--accent); }
 .document-actions { display: flex; gap: 8px; }
+.chat-panel { margin-bottom: 32px; padding: 32px; border: 1px solid var(--line); background: rgba(13, 27, 24, 0.72); }
+.chat-panel form { display: grid; grid-template-columns: 1fr auto; gap: 12px; }
+.chat-panel textarea { min-height: 96px; resize: vertical; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: #081411; color: var(--text); font: inherit; }
+.chat-panel button { align-self: end; padding: 13px 18px; border: 0; border-radius: 999px; font-weight: 800; }
+.answer-card { margin-top: 24px; padding: 22px; border-left: 3px solid var(--accent); background: #081411; }
+.answer-card > p { line-height: 1.7; white-space: pre-wrap; }
+.answer-card small, .answer-card summary { color: var(--muted); }
+.answer-card details { margin-top: 20px; }
+.source-list { display: grid; gap: 10px; margin-top: 12px; }
+.source-list article { min-height: auto; padding: 18px; }
+@media (max-width: 760px) { .chat-panel form { grid-template-columns: 1fr; } }
 .empty-state { min-height: 220px; display: grid; place-content: center; gap: 8px; text-align: center; color: var(--muted); border: 1px dashed var(--line); }
 .empty-state strong { color: var(--text); font-size: 1.2rem; }
 @media (max-width: 760px) {

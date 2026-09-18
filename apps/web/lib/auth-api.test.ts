@@ -71,4 +71,19 @@ describe("browser authentication API", () => {
     expect(headers.Authorization).toBe("Bearer access");
     expect(headers["Content-Type"]).toBeUndefined();
   });
+
+  it("sends authenticated grounded questions with retrieval controls", async () => {
+    const { askProject } = await import("./auth-api");
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ answer: "Evidence [S1].", sources: [] }), { status: 200 }),
+    );
+    await askProject("access", "project-1", "What is documented?", 4, 0.4);
+    const request = fetchMock.mock.calls[0][1];
+    expect(request?.headers).toMatchObject({ Authorization: "Bearer access" });
+    expect(JSON.parse(String(request?.body))).toEqual({
+      question: "What is documented?",
+      top_k: 4,
+      similarity_threshold: 0.4,
+    });
+  });
 });

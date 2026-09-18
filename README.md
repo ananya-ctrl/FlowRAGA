@@ -30,7 +30,7 @@ docs         Architecture and engineering decisions
 
 ## Status
 
-The application now includes secure browser authentication, owner-isolated projects, protected document ingestion, asynchronous chunking, local open-source embeddings, and pgvector indexing. Retrieval, answer generation, evaluation, and the visual pipeline builder will be added in reviewed phases.
+The application now includes secure browser authentication, owner-isolated projects, protected ingestion, asynchronous indexing, semantic retrieval, cited evidence, and grounded answer generation with local open-weight models. Evaluation and the visual pipeline builder will be added in reviewed phases.
 
 ## License
 

@@ -61,6 +61,25 @@ flowchart TD
 - Production vectors use `vector(384)` with an HNSW cosine index. Tests use a JSON-compatible variant.
 - `BAAI/bge-small-en-v1.5` runs locally through FastEmbed; no paid model API is required.
 
+## Grounded question answering
+
+```mermaid
+flowchart TD
+    Question[Owned project question] --> Embed[Local query embedding]
+    Embed --> Search[Owner-filtered vector search]
+    Search --> Evidence[Ranked source chunks]
+    Evidence --> Ollama[Local Ollama generation]
+    Ollama --> Guard[Citation validation]
+    Guard --> Answer[Answer, sources, and latency]
+```
+
+- Retrieval filters by both project and authenticated owner inside the database query.
+- Top-k and cosine similarity thresholds are bounded and configurable.
+- Retrieved chunks are serialized as untrusted data and never treated as model instructions.
+- Answers must cite valid returned source labels. Citation-free or invalid output is rejected.
+- If Ollama is unavailable, the API still returns retrieved evidence and an explicit status.
+- `qwen2.5:3b` is the default local generator; no hosted LLM key is required.
+
 ## Planned model defaults
 
 - Embeddings: `BAAI/bge-small-en-v1.5`

@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     embedding_batch_size: int = Field(default=32, ge=1, le=256)
     ingestion_max_attempts: int = Field(default=3, ge=1, le=10)
     worker_poll_seconds: float = Field(default=2.0, ge=0.1, le=60)
+    ollama_base_url: str = "http://ollama:11434"
+    ollama_model: str = "qwen2.5:3b"
+    generation_timeout_seconds: float = Field(default=90, ge=5, le=300)
+    retrieval_default_top_k: int = Field(default=5, ge=1, le=20)
+    retrieval_default_threshold: float = Field(default=0.25, ge=0, le=1)
+    retrieval_max_context_chars: int = Field(default=16000, ge=1000, le=100000)
 
     @model_validator(mode="after")
     def validate_chunking(self) -> "Settings":

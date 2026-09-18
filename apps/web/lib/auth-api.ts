@@ -102,3 +102,7 @@ export function listDocuments(accessToken: string, projectId: string) { return r
 export function uploadDocument(accessToken: string, projectId: string, file: File) { const body = new FormData(); body.append("file", file); return request<UploadedDocument>(`/api/v1/projects/${projectId}/documents`, {method: "POST", headers: {Authorization: `Bearer ${accessToken}`}, body}); }
 export function deleteDocument(accessToken: string, projectId: string, documentId: string) { return request<void>(`/api/v1/projects/${projectId}/documents/${documentId}`, {method: "DELETE", headers: {Authorization: `Bearer ${accessToken}`}}); }
 export function retryDocument(accessToken: string, projectId: string, documentId: string) { return request(`/api/v1/projects/${projectId}/documents/${documentId}/retry`, {method: "POST", headers: {Authorization: `Bearer ${accessToken}`}}); }
+
+export interface AnswerSource { label: string; chunk_id: string; document_id: string; filename: string; position: number; content: string; score: number; }
+export interface AnswerResult { answer: string; sources: AnswerSource[]; retrieval_ms: number; generation_ms: number | null; generation_status: string; model: string; }
+export function askProject(accessToken: string, projectId: string, question: string, topK = 5, similarityThreshold = 0.25) { return request<AnswerResult>(`/api/v1/projects/${projectId}/ask`, {method: "POST", headers: {Authorization: `Bearer ${accessToken}`}, body: JSON.stringify({question, top_k: topK, similarity_threshold: similarityThreshold})}); }
