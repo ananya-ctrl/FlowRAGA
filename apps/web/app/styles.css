@@ -75,6 +75,13 @@ article p { color: var(--muted); line-height: 1.6; }
 .dashboard-heading button:disabled { opacity: 0.55; cursor: not-allowed; }
 .project-list { border-top: 1px solid var(--line); padding: 32px 0 80px; }
 .project-list article { min-height: auto; }
+.project-form, .document-panel form { display: flex; gap: 12px; flex-wrap: wrap; }
+.project-form input, .document-panel input { padding: 13px 14px; border: 1px solid var(--line); border-radius: 8px; background: #081411; color: var(--text); font: inherit; }
+.document-panel { margin-bottom: 80px; padding: 32px; border: 1px solid var(--line); background: rgba(13, 27, 24, 0.58); }
+.document-panel > p { color: var(--muted); }
+.document-list { display: grid; gap: 12px; margin-top: 28px; }
+.document-list article { min-height: auto; padding: 20px; display: flex; align-items: center; justify-content: space-between; }
+.document-list span { display: block; margin-top: 7px; color: var(--muted); }
 .empty-state { min-height: 220px; display: grid; place-content: center; gap: 8px; text-align: center; color: var(--muted); border: 1px dashed var(--line); }
 .empty-state strong { color: var(--text); font-size: 1.2rem; }
 @media (max-width: 760px) {

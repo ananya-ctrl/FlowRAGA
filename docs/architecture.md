@@ -33,6 +33,15 @@ flowchart TD
 - Cookie-backed refresh and logout operations require a matching CSRF cookie and header.
 - The browser obtains a short-lived CSRF token before attempting session restoration.
 
+## Document ingestion security
+
+- Documents are isolated by both project and owner identifiers.
+- Uploads stream to generated storage keys and never use user-provided filenames as paths.
+- PDF and DOCX signatures are verified; text inputs must be UTF-8 and non-binary.
+- DOCX archives are checked for traversal, encryption, excessive entries, expansion, and compression ratios before parsing.
+- File size, PDF page count, and archive expansion limits are configurable.
+- Local storage is the initial adapter; object storage and asynchronous extraction can replace it without changing the API contract.
+
 ## Planned model defaults
 
 - Embeddings: `BAAI/bge-small-en-v1.5`

@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     refresh_token_days: int = Field(default=30, ge=1, le=90)
     auth_cookie_secure: bool = False
     auth_cookie_domain: str | None = None
+    storage_root: str = "./data/uploads"
+    max_upload_bytes: int = Field(default=25 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
+    max_archive_uncompressed_bytes: int = Field(default=100 * 1024 * 1024, ge=1024)
+    max_archive_entries: int = Field(default=2000, ge=1, le=10000)
 
     @field_validator("cors_origins")
     @classmethod

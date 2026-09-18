@@ -60,4 +60,15 @@ describe("browser authentication API", () => {
     await endSession("csrf-value");
     expect(storageSpy).not.toHaveBeenCalled();
   });
+
+  it("lets the browser set the multipart upload boundary", async () => {
+    const { uploadDocument } = await import("./auth-api");
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: "doc-1" }), { status: 201 }),
+    );
+    await uploadDocument("access", "project-1", new File(["hello"], "notes.txt"));
+    const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer access");
+    expect(headers["Content-Type"]).toBeUndefined();
+  });
 });
