@@ -77,13 +77,20 @@ describe("browser authentication API", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify({ answer: "Evidence [S1].", sources: [] }), { status: 200 }),
     );
-    await askProject("access", "project-1", "What is documented?", 4, 0.4);
+    await askProject("access", "project-1", "What is documented?", {
+      topK: 4,
+      similarityThreshold: 0.4,
+      retrievalMode: "hybrid",
+      rerank: true,
+    });
     const request = fetchMock.mock.calls[0][1];
     expect(request?.headers).toMatchObject({ Authorization: "Bearer access" });
     expect(JSON.parse(String(request?.body))).toEqual({
       question: "What is documented?",
       top_k: 4,
       similarity_threshold: 0.4,
+      retrieval_mode: "hybrid",
+      rerank: true,
     });
   });
 });

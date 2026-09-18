@@ -9,6 +9,7 @@ from flowraga.services.retrieval import (
     RetrievedSource,
     build_grounded_messages,
     ensure_grounded_answer,
+    reciprocal_rank_fusion,
     retrieve_sources,
 )
 
@@ -90,3 +91,13 @@ def test_grounding_prompt_marks_sources_as_untrusted_and_validates_citations() -
     assert ensure_grounded_answer("A supported fact [S1].", 1) == "A supported fact [S1]."
     assert ensure_grounded_answer("Unsupported claim.", 1).startswith("I could not verify")
     assert ensure_grounded_answer("Invalid [S9].", 1).startswith("I could not verify")
+
+
+def test_reciprocal_rank_fusion_rewards_chunks_found_by_both_methods() -> None:
+    shared = RetrievedSource(uuid.uuid4(), uuid.uuid4(), "shared.txt", 0, "shared", 0.9)
+    dense_only = RetrievedSource(uuid.uuid4(), uuid.uuid4(), "dense.txt", 0, "dense", 0.8)
+    lexical_only = RetrievedSource(uuid.uuid4(), uuid.uuid4(), "lexical.txt", 0, "lexical", 1.0)
+    fused = reciprocal_rank_fusion([shared, dense_only], [lexical_only, shared], 60)
+    assert fused[0].chunk_id == shared.chunk_id
+    assert fused[0].vector_rank == 1
+    assert fused[0].keyword_rank == 2

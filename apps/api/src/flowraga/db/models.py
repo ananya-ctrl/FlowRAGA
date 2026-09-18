@@ -85,6 +85,7 @@ class Project(Base):
     documents: Mapped[list["Document"]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
+    conversations: Mapped[list["ChatConversation"]] = relationship(cascade="all, delete-orphan")
 
 
 class Document(Base):
@@ -159,4 +160,51 @@ class IngestionJob(Base):
     )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChatConversation(Base):
+    __tablename__ = "chat_conversations"
+    __table_args__ = (Index("ix_conversations_project_updated", "project_id", "updated_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    title: Mapped[str] = mapped_column(String(160))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    messages: Mapped[list["ChatMessage"]] = relationship(cascade="all, delete-orphan")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    __table_args__ = (Index("ix_messages_conversation_created", "conversation_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("chat_conversations.id", ondelete="CASCADE")
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    role: Mapped[str] = mapped_column(String(20))
+    content: Mapped[str] = mapped_column(Text)
+    sources: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    trace: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    feedback: Mapped["AnswerFeedback | None"] = relationship(cascade="all, delete-orphan")
+
+
+class AnswerFeedback(Base):
+    __tablename__ = "answer_feedback"
+    __table_args__ = (UniqueConstraint("message_id", name="uq_feedback_message"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("chat_messages.id", ondelete="CASCADE")
+    )
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    rating: Mapped[int] = mapped_column(Integer)
+    comment: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

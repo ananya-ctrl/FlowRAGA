@@ -80,6 +80,16 @@ flowchart TD
 - If Ollama is unavailable, the API still returns retrieved evidence and an explicit status.
 - `qwen2.5:3b` is the default local generator; no hosted LLM key is required.
 
+## Conversation and retrieval quality
+
+- Conversations, messages, evidence snapshots, and retrieval traces are owner-isolated records.
+- Hybrid retrieval combines dense similarity and PostgreSQL full-text search using reciprocal-rank fusion.
+- `Xenova/ms-marco-MiniLM-L-6-v2` provides an Apache-2.0 local cross-encoder reranking stage.
+- Reranking is optional and degrades to fused ordering if the model is unavailable.
+- Users can configure retrieval mode, top-k, threshold, and reranking for each question.
+- Answer feedback is unique per message and can be updated without duplicating records.
+- Conversation export produces Markdown containing the dialogue and cited source summary.
+
 ## Planned model defaults
 
 - Embeddings: `BAAI/bge-small-en-v1.5`

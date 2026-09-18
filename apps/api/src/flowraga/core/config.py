@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     retrieval_default_top_k: int = Field(default=5, ge=1, le=20)
     retrieval_default_threshold: float = Field(default=0.25, ge=0, le=1)
     retrieval_max_context_chars: int = Field(default=16000, ge=1000, le=100000)
+    reranker_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
+    hybrid_candidate_multiplier: int = Field(default=3, ge=1, le=10)
+    rrf_constant: int = Field(default=60, ge=1, le=200)
 
     @model_validator(mode="after")
     def validate_chunking(self) -> "Settings":

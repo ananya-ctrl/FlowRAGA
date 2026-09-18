@@ -4,7 +4,7 @@ import re
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from flowraga.db.models import Document, DocumentChunk
@@ -18,6 +18,9 @@ class RetrievedSource:
     position: int
     content: str
     score: float
+    vector_rank: int | None = None
+    keyword_rank: int | None = None
+    rerank_score: float | None = None
 
 
 def cosine_similarity(left: list[float], right: list[float]) -> float:
@@ -89,6 +92,128 @@ async def retrieve_sources(
         key=lambda source: source.score,
         reverse=True,
     )[:top_k]
+
+
+async def keyword_sources(
+    db: AsyncSession,
+    project_id: uuid.UUID,
+    owner_id: uuid.UUID,
+    query: str,
+    limit: int,
+) -> list[RetrievedSource]:
+    if db.bind is not None and db.bind.dialect.name == "postgresql":
+        document_vector = func.to_tsvector("english", DocumentChunk.content)
+        query_vector = func.websearch_to_tsquery("english", query)
+        rank = func.ts_rank_cd(document_vector, query_vector)
+        rows = await db.execute(
+            select(DocumentChunk, Document.original_filename, rank.label("rank"))
+            .join(Document, Document.id == DocumentChunk.document_id)
+            .where(
+                DocumentChunk.project_id == project_id,
+                DocumentChunk.owner_id == owner_id,
+                Document.status == "ready",
+                document_vector.op("@@")(query_vector),
+            )
+            .order_by(rank.desc())
+            .limit(limit)
+        )
+        return [
+            RetrievedSource(
+                chunk.id,
+                chunk.document_id,
+                filename,
+                chunk.position,
+                chunk.content,
+                float(rank_value),
+            )
+            for chunk, filename, rank_value in rows
+        ]
+    terms = {term.lower() for term in re.findall(r"[\w-]+", query) if len(term) > 1}
+    if not terms:
+        return []
+    rows = await db.execute(
+        select(DocumentChunk, Document.original_filename)
+        .join(Document, Document.id == DocumentChunk.document_id)
+        .where(
+            DocumentChunk.project_id == project_id,
+            DocumentChunk.owner_id == owner_id,
+            Document.status == "ready",
+        )
+    )
+    matches = []
+    for chunk, filename in rows:
+        words = {word.lower() for word in re.findall(r"[\w-]+", chunk.content)}
+        score = len(terms & words) / len(terms)
+        if score:
+            matches.append(
+                RetrievedSource(
+                    chunk.id,
+                    chunk.document_id,
+                    filename,
+                    chunk.position,
+                    chunk.content,
+                    score,
+                )
+            )
+    return sorted(matches, key=lambda source: source.score, reverse=True)[:limit]
+
+
+def reciprocal_rank_fusion(
+    vector_sources: list[RetrievedSource],
+    lexical_sources: list[RetrievedSource],
+    constant: int,
+) -> list[RetrievedSource]:
+    merged: dict[uuid.UUID, dict] = {}
+    for rank, source in enumerate(vector_sources, start=1):
+        merged[source.chunk_id] = {
+            "source": source,
+            "score": 1 / (constant + rank),
+            "vector_rank": rank,
+            "keyword_rank": None,
+        }
+    for rank, source in enumerate(lexical_sources, start=1):
+        entry = merged.setdefault(
+            source.chunk_id,
+            {"source": source, "score": 0.0, "vector_rank": None, "keyword_rank": None},
+        )
+        entry["score"] += 1 / (constant + rank)
+        entry["keyword_rank"] = rank
+    return sorted(
+        [
+            RetrievedSource(
+                chunk_id=entry["source"].chunk_id,
+                document_id=entry["source"].document_id,
+                filename=entry["source"].filename,
+                position=entry["source"].position,
+                content=entry["source"].content,
+                score=entry["score"],
+                vector_rank=entry["vector_rank"],
+                keyword_rank=entry["keyword_rank"],
+            )
+            for entry in merged.values()
+        ],
+        key=lambda source: source.score,
+        reverse=True,
+    )
+
+
+async def hybrid_retrieve_sources(
+    db: AsyncSession,
+    project_id: uuid.UUID,
+    owner_id: uuid.UUID,
+    question: str,
+    query_vector: list[float],
+    top_k: int,
+    threshold: float,
+    candidate_multiplier: int,
+    rrf_constant: int,
+) -> list[RetrievedSource]:
+    candidate_limit = top_k * candidate_multiplier
+    dense = await retrieve_sources(
+        db, project_id, owner_id, query_vector, candidate_limit, threshold
+    )
+    lexical = await keyword_sources(db, project_id, owner_id, question, candidate_limit)
+    return reciprocal_rank_fusion(dense, lexical, rrf_constant)[:candidate_limit]
 
 
 def build_grounded_messages(

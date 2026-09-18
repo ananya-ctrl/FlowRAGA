@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from flowraga.api.routes.auth import router as auth_router
+from flowraga.api.routes.conversations import router as conversations_router
 from flowraga.api.routes.documents import router as documents_router
 from flowraga.api.routes.health import router as health_router
 from flowraga.api.routes.projects import router as projects_router
@@ -64,6 +65,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(projects_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(qa_router, prefix="/api/v1")
+app.include_router(conversations_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)

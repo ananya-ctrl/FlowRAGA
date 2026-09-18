@@ -95,6 +95,21 @@ article p { color: var(--muted); line-height: 1.6; }
 .source-list { display: grid; gap: 10px; margin-top: 12px; }
 .source-list article { min-height: auto; padding: 18px; }
 @media (max-width: 760px) { .chat-panel form { grid-template-columns: 1fr; } }
+.chat-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; }
+.conversation-sidebar { display: flex; flex-direction: column; gap: 8px; border-right: 1px solid var(--line); padding-right: 16px; }
+.conversation-sidebar button { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: transparent; color: var(--muted); border: 1px solid transparent; padding: 9px; cursor: pointer; }
+.conversation-sidebar .conversation-active { color: var(--text); border-color: var(--line); }
+.retrieval-settings { margin-bottom: 18px; color: var(--muted); }
+.retrieval-settings > div { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.retrieval-settings label { display: flex; gap: 6px; align-items: center; }
+.retrieval-settings input, .retrieval-settings select { background: #081411; color: var(--text); border: 1px solid var(--line); padding: 6px; }
+.chat-message { min-height: auto; margin: 10px 0; padding: 18px; border: 1px solid var(--line); }
+.chat-message.user { margin-left: 12%; }
+.chat-message.assistant { margin-right: 12%; border-left: 3px solid var(--accent); }
+.chat-message pre { white-space: pre-wrap; color: var(--muted); }
+.feedback-actions, .chat-tools { display: flex; gap: 8px; margin-top: 12px; }
+.feedback-actions button { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 6px 9px; cursor: pointer; }
+@media (max-width: 760px) { .chat-layout { grid-template-columns: 1fr; } .conversation-sidebar { border-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 12px; } }
 .empty-state { min-height: 220px; display: grid; place-content: center; gap: 8px; text-align: center; color: var(--muted); border: 1px dashed var(--line); }
 .empty-state strong { color: var(--text); font-size: 1.2rem; }
 @media (max-width: 760px) {
