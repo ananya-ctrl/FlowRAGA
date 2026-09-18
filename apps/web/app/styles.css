@@ -1,0 +1,46 @@
+:root {
+  color-scheme: dark;
+  --bg: #07110f;
+  --surface: #0d1b18;
+  --line: #203a33;
+  --text: #effbf6;
+  --muted: #9bb4aa;
+  --accent: #84f1bd;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 75% 12%, rgba(78, 219, 157, 0.13), transparent 32rem),
+    var(--bg);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+a { color: inherit; }
+main { width: min(1160px, calc(100% - 40px)); margin: 0 auto; min-height: 100vh; }
+nav { height: 82px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.brand { color: var(--accent); font-size: 1.25rem; font-weight: 800; letter-spacing: -0.04em; text-decoration: none; }
+.phase { color: var(--muted); font: 0.78rem/1.2 ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.12em; }
+.hero { max-width: 900px; padding: 112px 0 88px; }
+.eyebrow { color: var(--accent); font: 0.78rem/1.2 ui-monospace, monospace; letter-spacing: 0.15em; text-transform: uppercase; }
+h1 { max-width: 850px; margin: 22px 0; font-size: clamp(3.3rem, 8vw, 7.5rem); line-height: 0.92; letter-spacing: -0.075em; }
+.lede { max-width: 690px; color: var(--muted); font-size: clamp(1.05rem, 2vw, 1.35rem); line-height: 1.65; }
+.actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 36px; }
+.actions a { padding: 14px 20px; border-radius: 999px; text-decoration: none; font-weight: 700; }
+.primary { background: var(--accent); color: #062218; }
+.secondary { border: 1px solid var(--line); }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-left: 1px solid var(--line); margin-bottom: 80px; }
+article { min-height: 260px; padding: 32px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(13, 27, 24, 0.58); }
+article span { color: var(--accent); font: 0.78rem/1 ui-monospace, monospace; }
+article h2 { margin-top: 52px; font-size: 1.35rem; }
+article p { color: var(--muted); line-height: 1.6; }
+@media (max-width: 760px) {
+  main { width: min(100% - 24px, 1160px); }
+  .hero { padding: 76px 0 64px; }
+  h1 { font-size: clamp(3rem, 17vw, 5rem); }
+  .grid { grid-template-columns: 1fr; }
+  article { min-height: 210px; }
+}
+

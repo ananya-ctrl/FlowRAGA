@@ -1,0 +1,55 @@
+name: flowraga
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: flowraga
+      POSTGRES_USER: flowraga
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowraga -d flowraga"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [internal]
+
+  api:
+    build:
+      context: ./apps/api
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://flowraga:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/flowraga
+      CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal, edge]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [edge]
+
+networks:
+  internal:
+    internal: true
+  edge:
+
+volumes:
+  postgres_data:
+
