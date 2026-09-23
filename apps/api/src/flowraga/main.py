@@ -1,5 +1,6 @@
+import asyncio
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from uuid import uuid4
 
 import structlog
@@ -18,6 +19,9 @@ from flowraga.api.routes.qa import router as qa_router
 from flowraga.core.config import get_settings
 from flowraga.core.database import Database
 from flowraga.core.observability import configure_logging, observe_request
+from flowraga.models.dependencies import get_embedding_provider, get_generation_provider
+from flowraga.workers.evaluation import process_next as process_evaluation
+from flowraga.workers.ingestion import process_next as process_ingestion
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -27,7 +31,34 @@ logger = structlog.get_logger("flowraga.api")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.database = Database(settings)
+    worker_tasks = []
+    if settings.run_embedded_workers:
+
+        async def ingestion_loop() -> None:
+            provider = get_embedding_provider()
+            while True:
+                if not await process_ingestion(app.state.database, provider, settings):
+                    await asyncio.sleep(settings.worker_poll_seconds)
+
+        async def evaluation_loop() -> None:
+            embeddings = get_embedding_provider()
+            generation = get_generation_provider()
+            while True:
+                if not await process_evaluation(
+                    app.state.database, settings, embeddings, generation
+                ):
+                    await asyncio.sleep(settings.worker_poll_seconds)
+
+        worker_tasks = [
+            asyncio.create_task(ingestion_loop()),
+            asyncio.create_task(evaluation_loop()),
+        ]
     yield
+    for task in worker_tasks:
+        task.cancel()
+    for task in worker_tasks:
+        with suppress(asyncio.CancelledError):
+            await task
     await app.state.database.close()
 
 
@@ -44,7 +75,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-CSRF-Token"],
 )
 
 

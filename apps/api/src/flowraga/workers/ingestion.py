@@ -5,7 +5,7 @@ from sqlalchemy import delete, select
 
 from flowraga.core.config import Settings, get_settings
 from flowraga.core.database import Database
-from flowraga.db.models import Document, DocumentChunk, IngestionJob
+from flowraga.db.models import Document, DocumentChunk, IngestionJob, Pipeline
 from flowraga.models.embeddings import FastEmbedProvider
 from flowraga.models.providers import EmbeddingProvider
 from flowraga.services.indexing import index_document
@@ -65,7 +65,26 @@ async def process_next(database: Database, provider: EmbeddingProvider, settings
         if job is None:
             await db.rollback()
             return False
-        await run_job(db, job, provider, settings, persist_progress=True)
+        pipeline = await db.scalar(
+            select(Pipeline).where(
+                Pipeline.project_id == job.project_id,
+                Pipeline.owner_id == job.owner_id,
+                Pipeline.is_active.is_(True),
+            )
+        )
+        job_settings = settings
+        if pipeline is not None:
+            job_settings = settings.model_copy(
+                update={
+                    "chunk_size_words": pipeline.configuration.get(
+                        "chunk_size_words", settings.chunk_size_words
+                    ),
+                    "chunk_overlap_words": pipeline.configuration.get(
+                        "chunk_overlap_words", settings.chunk_overlap_words
+                    ),
+                }
+            )
+        await run_job(db, job, provider, job_settings, persist_progress=True)
         await db.commit()
         return True
 

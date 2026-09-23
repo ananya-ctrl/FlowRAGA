@@ -30,9 +30,9 @@ docs         Architecture and engineering decisions
 
 ## Status
 
-The application now includes secure authentication, protected ingestion, asynchronous indexing, hybrid retrieval, local reranking, grounded answers, persistent conversations, evaluation experiments, saved and active RAG pipelines, portable pipeline JSON, downloadable reports, structured logs, and metrics.
+The application now includes secure authentication, protected ingestion, asynchronous indexing, hybrid retrieval, local reranking, grounded answers, persistent conversations, evaluation experiments, a drag-and-drop DAG pipeline editor, saved and active versioned pipelines, portable pipeline JSON, downloadable reports, structured logs, and metrics.
 
-Pipeline design intentionally uses a lightweight validated sequence—documents → retrieval → reranking → generation → evaluation—rather than a resource-heavy graph runtime. See [release readiness](docs/release-readiness.md) before a public deployment.
+Pipeline graphs validate stage ordering, required nodes, connections, duplicate stages, and cycles before saving. Active chunking, retrieval, reranking, and generation settings are used by ingestion and Q&A execution. See [release readiness](docs/release-readiness.md) before a public deployment.
 
 ## License
 

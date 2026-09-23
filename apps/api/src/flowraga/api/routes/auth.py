@@ -44,7 +44,7 @@ def set_session_cookies(
     max_age = settings.refresh_token_days * 24 * 60 * 60
     common = {
         "secure": settings.auth_cookie_secure,
-        "samesite": "lax",
+        "samesite": settings.auth_cookie_samesite,
         "domain": settings.auth_cookie_domain,
         "path": "/",
         "max_age": max_age,
@@ -60,7 +60,7 @@ def clear_session_cookies(response: Response, settings: Settings) -> None:
             domain=settings.auth_cookie_domain,
             path="/",
             secure=settings.auth_cookie_secure,
-            samesite="lax",
+            samesite=settings.auth_cookie_samesite,
         )
 
 
@@ -161,7 +161,7 @@ async def csrf(response: Response, settings: Annotated[Settings, Depends(get_set
         token,
         httponly=False,
         secure=settings.auth_cookie_secure,
-        samesite="lax",
+        samesite=settings.auth_cookie_samesite,
         domain=settings.auth_cookie_domain,
         path="/",
         max_age=10 * 60,

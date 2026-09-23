@@ -15,7 +15,7 @@ from flowraga.models.dependencies import (
     GenerationDependency,
     RerankingDependency,
 )
-from flowraga.models.generation import GenerationUnavailable
+from flowraga.models.generation import GenerationUnavailable, OllamaGenerationProvider
 from flowraga.schemas.qa import AnswerResponse, QuestionRequest, SourceResponse
 from flowraga.services.retrieval import (
     build_grounded_messages,
@@ -157,7 +157,17 @@ async def ask_project(
     else:
         generation_started = time.perf_counter()
         try:
-            raw_answer = await generation.generate(
+            selected_model = pipeline.get("generation_model", settings.ollama_model)
+            selected_generation = (
+                OllamaGenerationProvider(
+                    settings.ollama_base_url,
+                    selected_model,
+                    settings.generation_timeout_seconds,
+                )
+                if selected_model != settings.ollama_model
+                else generation
+            )
+            raw_answer = await selected_generation.generate(
                 build_grounded_messages(question, sources, settings.retrieval_max_context_chars)
             )
             answer = ensure_grounded_answer(raw_answer, len(sources))
@@ -202,6 +212,6 @@ async def ask_project(
         retrieval_ms=retrieval_ms,
         generation_ms=generation_ms,
         generation_status=generation_status,
-        model=settings.ollama_model,
+        model=pipeline.get("generation_model", settings.ollama_model),
         trace=trace,
     )

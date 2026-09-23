@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     embedding_batch_size: int = Field(default=32, ge=1, le=256)
     ingestion_max_attempts: int = Field(default=3, ge=1, le=10)
     worker_poll_seconds: float = Field(default=2.0, ge=0.1, le=60)
+    run_embedded_workers: bool = False
     ollama_base_url: str = "http://ollama:11434"
     ollama_model: str = "qwen2.5:3b"
     generation_timeout_seconds: float = Field(default=90, ge=5, le=300)
@@ -78,6 +79,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def auth_cookie_samesite(self) -> Literal["lax", "none"]:
+        return "none" if self.auth_cookie_secure else "lax"
 
 
 @lru_cache

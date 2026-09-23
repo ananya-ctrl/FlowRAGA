@@ -103,6 +103,7 @@ flowchart TD
 ## Pipelines and release portability
 
 - Projects can save bounded retrieval configurations, activate one preset, and version changes.
+- The drag-and-drop editor persists node positions and directed edges; server validation rejects cycles, missing stages, duplicate stages, invalid references, and disconnected generation paths.
 - The active pipeline supplies the authoritative bounded retrieval settings to question answering.
 - Balanced, fast, and high-recall templates cover common use without introducing a graph execution dependency.
 - Pipeline JSON export/import uses a versioned portable format and validates every imported setting.

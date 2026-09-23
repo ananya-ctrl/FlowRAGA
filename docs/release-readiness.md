@@ -12,6 +12,8 @@ FlowRAGA is designed to remain free and self-hosted. PostgreSQL/pgvector, FastEm
 6. Apply migrations before traffic, then verify `/api/v1/health/live`, `/api/v1/health/ready`, and `/api/v1/health/metrics`.
 7. Pin container image versions for a production release and monitor request, retrieval, generation, queue, disk, and database health.
 
+For a constrained single-service demo, `RUN_EMBEDDED_WORKERS=true` runs ingestion and evaluation loops inside the API process. Production deployments should use independent workers. Cross-origin HTTPS deployments automatically use `SameSite=None` secure session cookies.
+
 ## Recovery
 
 - Roll back the application image while keeping database migrations forward-compatible.

@@ -16,6 +16,38 @@ from flowraga.schemas.pipelines import (
 router = APIRouter(prefix="/projects/{project_id}/pipelines", tags=["pipelines"])
 
 
+def template_configuration(mode: str = "hybrid", top_k: int = 5, rerank: bool = True) -> dict:
+    node_types = ["source", "chunk", "embed", "retrieve"]
+    if rerank:
+        node_types.append("rerank")
+    node_types.extend(["generate", "evaluate"])
+    nodes = [
+        {
+            "id": node_type,
+            "type": node_type,
+            "label": node_type.title(),
+            "x": index * 190,
+            "y": 80,
+        }
+        for index, node_type in enumerate(node_types)
+    ]
+    edges = [
+        {"id": f"{source}-{target}", "source": source, "target": target}
+        for source, target in zip(node_types, node_types[1:], strict=False)
+    ]
+    return {
+        "retrieval_mode": mode,
+        "top_k": top_k,
+        "similarity_threshold": 0.25,
+        "rerank": rerank,
+        "chunk_size_words": 350,
+        "chunk_overlap_words": 50,
+        "generation_model": "qwen2.5:3b",
+        "nodes": nodes,
+        "edges": edges,
+    }
+
+
 async def owned_project(project_id: uuid.UUID, db: DbSession, user: CurrentUser) -> Project:
     project = await db.scalar(
         select(Project).where(Project.id == project_id, Project.owner_id == user.id)
@@ -43,31 +75,19 @@ async def owned_pipeline(
 @router.get("/templates")
 async def templates() -> list[dict]:
     return [
-        {
-            "name": "Balanced",
-            "configuration": {
-                "retrieval_mode": "hybrid",
-                "top_k": 5,
-                "similarity_threshold": 0.25,
-                "rerank": True,
-            },
-        },
+        {"name": "Balanced", "configuration": template_configuration()},
         {
             "name": "Fast",
             "configuration": {
-                "retrieval_mode": "vector",
-                "top_k": 3,
+                **template_configuration("vector", 3, False),
                 "similarity_threshold": 0.3,
-                "rerank": False,
             },
         },
         {
             "name": "High recall",
             "configuration": {
-                "retrieval_mode": "hybrid",
-                "top_k": 10,
+                **template_configuration("hybrid", 10),
                 "similarity_threshold": 0.15,
-                "rerank": True,
             },
         },
     ]

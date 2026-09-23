@@ -2,6 +2,38 @@ from fastapi.testclient import TestClient
 from test_auth import register
 from test_documents import create_project
 
+from flowraga.schemas.pipelines import PipelineConfiguration
+
+
+def graph_configuration() -> dict:
+    types = ["source", "chunk", "embed", "retrieve", "rerank", "generate", "evaluate"]
+    return {
+        "retrieval_mode": "hybrid",
+        "top_k": 5,
+        "similarity_threshold": 0.25,
+        "rerank": True,
+        "nodes": [
+            {"id": value, "type": value, "label": value.title(), "x": index * 100, "y": 0}
+            for index, value in enumerate(types)
+        ],
+        "edges": [
+            {"id": f"{source}-{target}", "source": source, "target": target}
+            for source, target in zip(types, types[1:], strict=False)
+        ],
+    }
+
+
+def test_pipeline_graph_validation() -> None:
+    valid = PipelineConfiguration.model_validate(graph_configuration())
+    assert len(valid.nodes) == 7
+    invalid = graph_configuration()
+    invalid["edges"] = []
+    try:
+        PipelineConfiguration.model_validate(invalid)
+        raise AssertionError("Disconnected graph was accepted")
+    except ValueError as error:
+        assert "connect source to generation" in str(error)
+
 
 def test_pipeline_lifecycle_export_and_isolation(client: TestClient) -> None:
     owner = register(client, "pipeline-owner@example.com")
@@ -13,12 +45,7 @@ def test_pipeline_lifecycle_export_and_isolation(client: TestClient) -> None:
         headers=headers,
         json={
             "name": "Balanced",
-            "configuration": {
-                "retrieval_mode": "hybrid",
-                "top_k": 5,
-                "similarity_threshold": 0.25,
-                "rerank": True,
-            },
+            "configuration": graph_configuration(),
         },
     )
     assert created.status_code == 201, created.text
