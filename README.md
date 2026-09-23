@@ -9,7 +9,8 @@ This repository is an original implementation created independently by Ananya. I
 - **Web:** Next.js, React, TypeScript
 - **API:** FastAPI, Pydantic, SQLAlchemy
 - **Database:** PostgreSQL with pgvector
-- **AI:** provider-neutral interfaces for open-weight embedding, reranking, and generation models
+- **AI:** local embeddings/reranking plus Ollama or Groq-hosted open-weight generation
+- **Storage:** local development storage or private S3-compatible object storage (Cloudflare R2)
 - **Infrastructure:** Docker Compose and GitHub Actions
 
 ## Local development
@@ -19,6 +20,13 @@ This repository is an original implementation created independently by Ananya. I
 3. Open `http://localhost:3000` for the web app and `http://localhost:8000/docs` for API documentation.
 
 The worker downloads the open-weight `BAAI/bge-small-en-v1.5` model on first use and caches it in a Docker volume. No paid-model dependency or API key is required.
+
+## Hosted production providers
+
+For a Render deployment, set `GENERATION_PROVIDER=groq` with `GROQ_API_KEY` to use
+Groq's hosted open-weight Llama model. Set `STORAGE_BACKEND=s3` and the `S3_*`
+variables to persist uploads in a private Cloudflare R2 or other S3-compatible
+bucket. Secrets belong in the Render environment, never in this repository.
 
 ## Repository layout
 

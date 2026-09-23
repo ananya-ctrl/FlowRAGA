@@ -2,9 +2,12 @@ import hashlib
 import shutil
 import uuid
 import zipfile
+from asyncio import to_thread
 from pathlib import Path, PurePosixPath
 
 import aiofiles
+import boto3
+from botocore.config import Config
 from docx import Document as DocxDocument
 from fastapi import UploadFile
 from pypdf import PdfReader
@@ -21,6 +24,27 @@ ALLOWED_TYPES = {
 
 class InvalidDocument(ValueError):
     pass
+
+
+def _object_key(settings: Settings, storage_key: str) -> str:
+    prefix = settings.s3_key_prefix.strip("/")
+    return f"{prefix}/{storage_key}" if prefix else storage_key
+
+
+def _s3_client(settings: Settings):
+    return boto3.client(
+        "s3",
+        endpoint_url=settings.s3_endpoint_url,
+        region_name=settings.s3_region,
+        aws_access_key_id=settings.s3_access_key_id,
+        aws_secret_access_key=settings.s3_secret_access_key,
+        config=Config(
+            signature_version="s3v4",
+            retries={"max_attempts": 3, "mode": "standard"},
+            connect_timeout=5,
+            read_timeout=30,
+        ),
+    )
 
 
 async def store_upload(upload: UploadFile, settings: Settings) -> tuple[str, Path, int, str]:
@@ -48,6 +72,31 @@ async def store_upload(upload: UploadFile, settings: Settings) -> tuple[str, Pat
         destination.unlink(missing_ok=True)
         raise InvalidDocument("File is empty")
     return key, destination, size, digest.hexdigest()
+
+
+async def persist_stored_file(
+    settings: Settings, storage_key: str, path: Path, media_type: str, checksum: str
+) -> None:
+    if settings.storage_backend == "local":
+        return
+
+    def upload_object() -> None:
+        with path.open("rb") as source:
+            _s3_client(settings).upload_fileobj(
+                source,
+                settings.s3_bucket or "",
+                _object_key(settings, storage_key),
+                ExtraArgs={
+                    "ContentType": media_type,
+                    "Metadata": {"sha256": checksum},
+                },
+            )
+
+    try:
+        await to_thread(upload_object)
+    except Exception as exc:
+        raise InvalidDocument("The document could not be saved to object storage") from exc
+    await to_thread(path.unlink, missing_ok=True)
 
 
 def _inspect_docx(path: Path, settings: Settings) -> None:
@@ -105,11 +154,21 @@ def validate_and_extract(path: Path, settings: Settings) -> tuple[str, str]:
     return ALLOWED_TYPES[suffix], text.strip()
 
 
-def delete_stored_file(settings: Settings, storage_key: str) -> None:
-    root = Path(settings.storage_root).resolve()
-    candidate = (root / storage_key).resolve()
-    if candidate.parent == root:
-        candidate.unlink(missing_ok=True)
+async def delete_stored_file(settings: Settings, storage_key: str) -> None:
+    if settings.storage_backend == "s3":
+        await to_thread(
+            _s3_client(settings).delete_object,
+            Bucket=settings.s3_bucket or "",
+            Key=_object_key(settings, storage_key),
+        )
+        return
+    def delete_local() -> None:
+        root = Path(settings.storage_root).resolve()
+        candidate = (root / storage_key).resolve()
+        if candidate.parent == root:
+            candidate.unlink(missing_ok=True)
+
+    await to_thread(delete_local)
 
 
 def delete_storage_tree(settings: Settings) -> None:

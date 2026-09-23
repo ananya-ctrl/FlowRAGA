@@ -14,6 +14,7 @@ from flowraga.schemas.documents import DocumentResponse, IngestionJobResponse
 from flowraga.services.documents import (
     InvalidDocument,
     delete_stored_file,
+    persist_stored_file,
     store_upload,
     validate_and_extract,
 )
@@ -53,6 +54,7 @@ async def upload_document(
         if duplicate is not None:
             path.unlink(missing_ok=True)
             raise HTTPException(status_code=409, detail="This document is already in the project")
+        await persist_stored_file(settings, key, path, media_type, checksum)
     except InvalidDocument as exc:
         if path is not None:
             path.unlink(missing_ok=True)
@@ -76,6 +78,7 @@ async def upload_document(
     except IntegrityError as exc:
         await db.rollback()
         path.unlink(missing_ok=True)
+        await delete_stored_file(settings, key)
         raise HTTPException(
             status_code=409, detail="This document is already in the project"
         ) from exc
@@ -165,5 +168,5 @@ async def delete_document(
     )
     if document is None:
         raise HTTPException(status_code=404, detail="Document not found")
-    delete_stored_file(get_settings(), document.storage_key)
+    await delete_stored_file(get_settings(), document.storage_key)
     await db.delete(document)

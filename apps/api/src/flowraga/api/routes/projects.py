@@ -65,5 +65,5 @@ async def delete_project(project_id: uuid.UUID, db: DbSession, user: CurrentUser
     project = await get_project(project_id, db, user)
     documents = await db.scalars(select(Document).where(Document.project_id == project.id))
     for document in documents:
-        delete_stored_file(get_settings(), document.storage_key)
+        await delete_stored_file(get_settings(), document.storage_key)
     await db.delete(project)

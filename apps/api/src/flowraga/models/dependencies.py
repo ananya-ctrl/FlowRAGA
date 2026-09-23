@@ -5,7 +5,7 @@ from fastapi import Depends
 
 from flowraga.core.config import get_settings
 from flowraga.models.embeddings import FastEmbedProvider
-from flowraga.models.generation import OllamaGenerationProvider
+from flowraga.models.generation import GroqGenerationProvider, OllamaGenerationProvider
 from flowraga.models.providers import EmbeddingProvider, GenerationProvider, RerankingProvider
 from flowraga.models.reranking import FastEmbedRerankingProvider
 
@@ -16,12 +16,27 @@ def get_embedding_provider() -> EmbeddingProvider:
     return FastEmbedProvider(settings.embedding_model, settings.embedding_dimensions)
 
 
+def build_generation_provider(model: str | None = None) -> GenerationProvider:
+    settings = get_settings()
+    if settings.generation_provider == "groq":
+        selected_model = model if model and ":" not in model else settings.groq_model
+        return GroqGenerationProvider(
+            settings.groq_api_key or "",
+            settings.groq_base_url,
+            selected_model,
+            settings.generation_timeout_seconds,
+            settings.generation_max_tokens,
+        )
+    return OllamaGenerationProvider(
+        settings.ollama_base_url,
+        model or settings.ollama_model,
+        settings.generation_timeout_seconds,
+    )
+
+
 @lru_cache
 def get_generation_provider() -> GenerationProvider:
-    settings = get_settings()
-    return OllamaGenerationProvider(
-        settings.ollama_base_url, settings.ollama_model, settings.generation_timeout_seconds
-    )
+    return build_generation_provider()
 
 
 @lru_cache

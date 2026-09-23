@@ -14,8 +14,9 @@ from flowraga.models.dependencies import (
     EmbeddingDependency,
     GenerationDependency,
     RerankingDependency,
+    build_generation_provider,
 )
-from flowraga.models.generation import GenerationUnavailable, OllamaGenerationProvider
+from flowraga.models.generation import GenerationUnavailable
 from flowraga.schemas.qa import AnswerResponse, QuestionRequest, SourceResponse
 from flowraga.services.retrieval import (
     build_grounded_messages,
@@ -87,6 +88,15 @@ async def ask_project(
         )
     )
     pipeline = active_pipeline.configuration if active_pipeline else {}
+    default_generation_model = (
+        settings.groq_model if settings.generation_provider == "groq" else settings.ollama_model
+    )
+    requested_generation_model = pipeline.get("generation_model", default_generation_model)
+    generation_model = (
+        default_generation_model
+        if settings.generation_provider == "groq" and ":" in requested_generation_model
+        else requested_generation_model
+    )
     top_k = pipeline.get("top_k") or payload.top_k or settings.retrieval_default_top_k
     threshold = (
         pipeline.get("similarity_threshold")
@@ -157,14 +167,9 @@ async def ask_project(
     else:
         generation_started = time.perf_counter()
         try:
-            selected_model = pipeline.get("generation_model", settings.ollama_model)
             selected_generation = (
-                OllamaGenerationProvider(
-                    settings.ollama_base_url,
-                    selected_model,
-                    settings.generation_timeout_seconds,
-                )
-                if selected_model != settings.ollama_model
+                build_generation_provider(generation_model)
+                if generation_model != default_generation_model
                 else generation
             )
             raw_answer = await selected_generation.generate(
@@ -212,6 +217,6 @@ async def ask_project(
         retrieval_ms=retrieval_ms,
         generation_ms=generation_ms,
         generation_status=generation_status,
-        model=pipeline.get("generation_model", settings.ollama_model),
+        model=generation_model,
         trace=trace,
     )

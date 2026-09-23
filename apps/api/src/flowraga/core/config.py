@@ -29,7 +29,14 @@ class Settings(BaseSettings):
     refresh_token_days: int = Field(default=30, ge=1, le=90)
     auth_cookie_secure: bool = False
     auth_cookie_domain: str | None = None
+    storage_backend: Literal["local", "s3"] = "local"
     storage_root: str = "./data/uploads"
+    s3_bucket: str | None = None
+    s3_endpoint_url: str | None = None
+    s3_region: str = "auto"
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
+    s3_key_prefix: str = "uploads"
     max_upload_bytes: int = Field(default=25 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
     max_archive_uncompressed_bytes: int = Field(default=100 * 1024 * 1024, ge=1024)
     max_archive_entries: int = Field(default=2000, ge=1, le=10000)
@@ -41,9 +48,14 @@ class Settings(BaseSettings):
     ingestion_max_attempts: int = Field(default=3, ge=1, le=10)
     worker_poll_seconds: float = Field(default=2.0, ge=0.1, le=60)
     run_embedded_workers: bool = False
+    generation_provider: Literal["ollama", "groq"] = "ollama"
     ollama_base_url: str = "http://ollama:11434"
     ollama_model: str = "qwen2.5:3b"
+    groq_api_key: str | None = None
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_model: str = "llama-3.3-70b-versatile"
     generation_timeout_seconds: float = Field(default=90, ge=5, le=300)
+    generation_max_tokens: int = Field(default=1200, ge=64, le=8192)
     retrieval_default_top_k: int = Field(default=5, ge=1, le=20)
     retrieval_default_threshold: float = Field(default=0.25, ge=0, le=1)
     retrieval_max_context_chars: int = Field(default=16000, ge=1000, le=100000)
@@ -74,6 +86,28 @@ class Settings(BaseSettings):
             )
         if self.is_production and not self.auth_cookie_secure:
             raise ValueError("Production authentication cookies must be secure")
+        if self.generation_provider == "groq" and not self.groq_api_key:
+            raise ValueError("GROQ_API_KEY is required when GENERATION_PROVIDER=groq")
+        if self.storage_backend == "s3" and not all(
+            (
+                self.s3_bucket,
+                self.s3_endpoint_url,
+                self.s3_access_key_id,
+                self.s3_secret_access_key,
+            )
+        ):
+            raise ValueError(
+                "S3_BUCKET, S3_ENDPOINT_URL, S3_ACCESS_KEY_ID, and "
+                "S3_SECRET_ACCESS_KEY are required when STORAGE_BACKEND=s3"
+            )
+        if self.is_production and self.storage_backend == "s3" and not (
+            self.s3_endpoint_url or ""
+        ).startswith("https://"):
+            raise ValueError("Production S3_ENDPOINT_URL must use HTTPS")
+        if self.is_production and self.generation_provider == "groq" and not (
+            self.groq_base_url.startswith("https://")
+        ):
+            raise ValueError("Production GROQ_BASE_URL must use HTTPS")
         return self
 
     @property

@@ -7,8 +7,9 @@ from sqlalchemy import delete, select
 from flowraga.core.config import Settings, get_settings
 from flowraga.core.database import Database
 from flowraga.db.models import EvaluationCase, EvaluationResult, EvaluationRun
+from flowraga.models.dependencies import get_generation_provider
 from flowraga.models.embeddings import FastEmbedProvider
-from flowraga.models.generation import GenerationUnavailable, OllamaGenerationProvider
+from flowraga.models.generation import GenerationUnavailable
 from flowraga.models.providers import EmbeddingProvider, GenerationProvider
 from flowraga.services.evaluation import (
     aggregate_metrics,
@@ -151,9 +152,7 @@ async def main() -> None:
     settings = get_settings()
     database = Database(settings)
     embeddings = FastEmbedProvider(settings.embedding_model, settings.embedding_dimensions)
-    generation = OllamaGenerationProvider(
-        settings.ollama_base_url, settings.ollama_model, settings.generation_timeout_seconds
-    )
+    generation = get_generation_provider()
     try:
         while True:
             if not await process_next(database, settings, embeddings, generation):
