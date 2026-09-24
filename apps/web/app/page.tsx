@@ -32,7 +32,7 @@ export default function Home() {
       <section id="principles" className="grid" aria-label="Engineering principles">
         {principles.map(([title, copy], index) => (
           <article key={title}>
-            <span>0{index + 1}</span>
+            <span>{String(index + 1).padStart(2, "0")}</span>
             <h2>{title}</h2>
             <p>{copy}</p>
           </article>
